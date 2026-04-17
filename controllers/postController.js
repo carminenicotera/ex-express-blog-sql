@@ -101,15 +101,20 @@ function update(req, res) {
 // Funzione per eliminare un post (destroy)
 function destroy(req, res) {
   const postId = Number(req.params.id);
-  const postindex = posts.findIndex(post => post.id === postId);
- 
-  if (postindex === -1) {
-    return res.status(404).json({ error: `Post ${postId} non trovato` });
-  }
 
-  posts.splice(postindex, 1);
-  console.log('Lista post aggiornata:', posts);
-  res.status(204).send();
+  db.query('DELETE FROM posts WHERE id = ?', [postId], (err, result) => {
+    if (err) {
+      console.error('Errore query delete:', err.message);
+      return res.status(500).json({ error: 'Errore interno del server' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: `Post ${postId} non trovato` });
+    }
+
+    console.log(`Post ${postId} eliminato dal database`);
+    res.status(204).send();
+  });
 }
 
 // Esportiamo le funzioni per usarle nel router

@@ -47,15 +47,40 @@ function index(req, res) {
 
 // Funzione per ottenere un singolo post (show)
 function show(req, res) {
-  const postId = Number(req.params.id);
-  const post = posts.find(post => post.id === postId);
+  const id = req.params.id;
 
-  if (!post) {
-    return res.status(404).json({ error: `Post ${postId} non trovato` });
-  }
+  // Query con JOIN per avere il post e i suoi tag
+  const sql = `
+    SELECT posts.*, GROUP_CONCAT(tags.label) AS tags
+    FROM posts
+    LEFT JOIN post_tag ON posts.id = post_tag.post_id
+    LEFT JOIN tags ON post_tag.tag_id = tags.id
+    WHERE posts.id = ?
+    GROUP BY posts.id
+  `;
 
-  res.json(post);
+  db.query(sql, [id], (err, results) => {
+    if (err) {
+      console.error('Errore query show:', err.message);
+      return res.status(500).json({ error: 'Errore interno del server' });
+    }
+
+    // Se non ci sono risultati, il post non esiste
+    if (results.length === 0) {
+      return res.status(404).json({ error: `Post con ID ${id} non trovato` });
+    }
+
+    // Formattiamo il singolo post (trasformiamo la stringa tags in array)
+    const post = results[0];
+    const formattedPost = {
+      ...post,
+      tags: post.tags ? post.tags.split(',') : []
+    };
+
+    res.json(formattedPost);
+  });
 }
+
 
 // Funzione per creare un nuovo post (store)
 function store(req, res) {

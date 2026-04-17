@@ -7,27 +7,43 @@ const db = require('../database/connection');
 
 // Funzione per ottenere tutti i post (index)
 function index(req, res) {
-  const tag = req.query.tag;
+  const { tag } = req.query;
 
-  db.query('SELECT * FROM posts', (err, results) => {
+  // Query completa che unisce le 3 tabelle
+  let sql = `
+    SELECT posts.*, GROUP_CONCAT(tags.label) AS tags
+    FROM posts
+    LEFT JOIN post_tag ON posts.id = post_tag.post_id
+    LEFT JOIN tags ON post_tag.tag_id = tags.id
+  `;
+
+  const params = [];
+
+  // Se c'è un tag nell'URL (?tag=nome), filtriamo i post
+  if (tag) {
+    sql += ` WHERE tags.label = ?`;
+    params.push(tag);
+  }
+
+  // Fondamentale per raggruppare i tag sotto lo stesso post
+  sql += ' GROUP BY posts.id';
+
+  db.query(sql, params, (err, results) => {
     if (err) {
       console.error('Errore query posts:', err.message);
       return res.status(500).json({ error: 'Errore interno del server' });
     }
 
-    let filteredPosts = results;
-    if (tag) {
-      filteredPosts = results.filter(post => {
-        if (!post.tags) return false;
-        return Array.isArray(post.tags)
-          ? post.tags.includes(tag)
-          : String(post.tags).includes(tag);
-      });
-    }
+    // Formattiamo i tag da stringa "tag1,tag2" a array ['tag1', 'tag2']
+    const formattedPosts = results.map(post => ({
+      ...post,
+      tags: post.tags ? post.tags.split(',') : []
+    }));
 
-    res.json(filteredPosts);
+    res.json(formattedPosts);
   });
 }
+
 
 // Funzione per ottenere un singolo post (show)
 function show(req, res) {

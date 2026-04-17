@@ -3,21 +3,30 @@
 
 // Importiamo l'array dei post dal file di dati
 const posts = require('../data/posts');
+const db = require('../database/connection');
 
 // Funzione per ottenere tutti i post (index)
 function index(req, res) {
-  // Inizialmente, restituiamo tutti i post senza filtri
-  let filteredPosts = posts;
-
-  // Se c'è un query parameter "tag", filtriamo i post per quel tag
   const tag = req.query.tag;
 
-  if (tag) {
-    filteredPosts = posts.filter(post => post.tags.includes(tag));
-  }
+  db.query('SELECT * FROM posts', (err, results) => {
+    if (err) {
+      console.error('Errore query posts:', err.message);
+      return res.status(500).json({ error: 'Errore interno del server' });
+    }
 
-  // Restituiamo i post filtrati (o tutti se non c'è il tag) in formato JSON
-  res.json(filteredPosts);
+    let filteredPosts = results;
+    if (tag) {
+      filteredPosts = results.filter(post => {
+        if (!post.tags) return false;
+        return Array.isArray(post.tags)
+          ? post.tags.includes(tag)
+          : String(post.tags).includes(tag);
+      });
+    }
+
+    res.json(filteredPosts);
+  });
 }
 
 // Funzione per ottenere un singolo post (show)

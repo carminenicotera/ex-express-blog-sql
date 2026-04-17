@@ -1,0 +1,14 @@
+{
+  "name": "express-blog-intro",
+  "version": "1.0.0",
+  "description": "Mini blog tutorial con Express",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "watch": "node --watch --env-file=.env server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.1",
+    "mysql2": "^3.22.1"
+  }
+}
